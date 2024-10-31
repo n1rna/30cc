@@ -27,7 +27,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (strcmp(argv[2], "--lex") != 0 && strcmp(argv[2], "--asm") != 0 && strcmp(argv[2], "--tree") != 0) {
+    if (strcmp(argv[2], "--lex") != 0 && strcmp(argv[2], "--asm") != 0 && strcmp(argv[2], "--tree") != 0)
+    {
         fprintf(stderr, "Unknown argument %s", argv[2]);
         return 1;
     }
@@ -63,7 +64,15 @@ int main(int argc, char *argv[])
         }
     }
 
-    tkn = preprocess(tkn);
+    tkn = preprocess(tkn, filename);
+
+    printf("Preprocessed tokens:\n");
+    typed_token *t = tkn;
+    while (t)
+    {
+        t->debug(t);
+        t = t->next;
+    }
 
     parser_node *prog = parse_program(&tkn);
     if (prog)

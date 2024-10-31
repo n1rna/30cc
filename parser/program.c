@@ -108,6 +108,7 @@ parser_node *parse_program(typed_token **tkn_ptr)
         }
         else
         {
+            fprintf(stderr, "Unexpected token in program %s\n", tkn->data);
             return NULL;
         }
     }

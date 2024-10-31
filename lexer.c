@@ -130,10 +130,18 @@ typed_token *next_op(char **inp_ptr)
     }
     if (*inp == '#')
     {
-        if (inp[1] == 'd' && inp[2] == 'e' && inp[3] == 'f' && inp[4] == 'i' && inp[5] == 'n' && inp[6] == 'e')
+        if (inp[1] == 'd' && inp[2] == 'e' && inp[3] == 'f' &&
+            inp[4] == 'i' && inp[5] == 'n' && inp[6] == 'e')
         {
             *inp_ptr += 7;
             return new_simp_tkn(TKN_MACRO_DEFINE);
+        }
+        else if (inp[1] == 'i' && inp[2] == 'n' && inp[3] == 'c' &&
+                 inp[4] == 'l' && inp[5] == 'u' && inp[6] == 'd' &&
+                 inp[7] == 'e')
+        {
+            *inp_ptr += 8;
+            return new_simp_tkn(TKN_MACRO_INCLUDE);
         }
     }
     if (*inp == '?')
