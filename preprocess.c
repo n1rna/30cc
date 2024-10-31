@@ -82,7 +82,6 @@ typed_token *preprocess_include(typed_token **tkns_ptr, include_stack **inc_stac
     if (tkn->type_id == TKN_LIT_STR)
     {
         filename = strdup((char *)tkn->data);
-        printf("-----------filename nosys: %s\n", filename);
         tkn = tkn->next;
     }
     else

@@ -66,14 +66,6 @@ int main(int argc, char *argv[])
 
     tkn = preprocess(tkn, filename);
 
-    printf("Preprocessed tokens:\n");
-    typed_token *t = tkn;
-    while (t)
-    {
-        t->debug(t);
-        t = t->next;
-    }
-
     parser_node *prog = parse_program(&tkn);
     if (prog)
     {
