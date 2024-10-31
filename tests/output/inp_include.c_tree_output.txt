@@ -1,0 +1,25 @@
+Program(
+  FunctionDecl(
+    Name:
+      print_message
+    Returns:
+      TKN_VOID
+    ParamTypes:
+      Pointer of:
+        TKN_CHAR
+  )
+  FunctionDecl(
+    Name:
+      add_numbers
+    Returns:
+      TKN_INT
+    ParamTypes:
+      TKN_INT
+      TKN_INT
+  )
+  Struct(Name: Point, Typedef: (null))
+    VarDecl(x):
+      TKN_INT
+    VarDecl(y):
+      TKN_INT
+)

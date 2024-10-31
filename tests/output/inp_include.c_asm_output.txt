@@ -1,0 +1,16 @@
+section .data
+__print_message_size: equ 16
+__add_numbers_size: equ 16
+section .text
+extern print_message
+extern add_numbers
+extern exit
+global _start
+_start:
+; Pass argc and argv
+mov rdi, [rsp]
+mov rsi, rsp
+add rsi, 8
+call main
+mov rdi, 0
+call exit
