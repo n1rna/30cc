@@ -50,6 +50,21 @@ define *find_def(linked_list *defs, char *id)
     return NULL;
 }
 
+int is_header_file(const char *filename)
+{
+    const char *ext = strrchr(filename, '.');
+    return ext && strcmp(ext, ".h") == 0;
+}
+
+char *get_source_filename(const char *header_filename)
+{
+    size_t len = strlen(header_filename);
+    char *source_filename = malloc(len + 1);
+    strcpy(source_filename, header_filename);
+    source_filename[len - 1] = 'c';
+    return source_filename;
+}
+
 typed_token *preprocess_include(typed_token **tkns_ptr, include_stack **inc_stack)
 {
     typed_token *tkn = *tkns_ptr;
@@ -72,11 +87,10 @@ typed_token *preprocess_include(typed_token **tkns_ptr, include_stack **inc_stac
     }
     else
     {
-        // Handle <header.h>
+        // Handle system header files
         is_system = 1;
         tkn = tkn->next;
 
-        // Build the filename from tokens until we hit >
         char buffer[1024] = {0};
         int pos = 0;
 
@@ -97,7 +111,6 @@ typed_token *preprocess_include(typed_token **tkns_ptr, include_stack **inc_stac
                 }
                 else
                 {
-
                     strcat(buffer, (char *)tkn->data);
                     pos += len;
                 }
@@ -118,9 +131,7 @@ typed_token *preprocess_include(typed_token **tkns_ptr, include_stack **inc_stac
     // Get current file from include stack
     const char *current_file = (*inc_stack) ? (*inc_stack)->filename : NULL;
 
-    // Search for include file with current file context
     char *full_path = search_include_file(filename, is_system, current_file);
-
     if (!full_path)
     {
         fprintf(stderr, "Include file not found: %s\n", filename);
@@ -128,40 +139,89 @@ typed_token *preprocess_include(typed_token **tkns_ptr, include_stack **inc_stac
         return NULL;
     }
 
-    // Check for circular includes
-    include_stack *curr = *inc_stack;
-    while (curr)
+    typed_token *result = NULL;
+
+    if (is_header_file(filename))
     {
-        if (strcmp(curr->filename, full_path) == 0)
+        include_stack *curr = *inc_stack;
+        while (curr)
         {
-            fprintf(stderr, "Circular include detected: %s\n", filename);
+            if (strcmp(curr->filename, full_path) == 0)
+            {
+                fprintf(stderr, "Circular include detected: %s\n", filename);
+                free(filename);
+                free(full_path);
+                return NULL;
+            }
+            curr = curr->prev;
+        }
+
+        char *content = read_file(full_path);
+        if (!content)
+        {
             free(filename);
             free(full_path);
             return NULL;
         }
-        curr = curr->prev;
-    }
 
-    // Read and process included file
-    char *content = read_file(full_path);
-    if (!content)
+        push_include(inc_stack, full_path);
+        typed_token *header_tokens = tokenize(content);
+        result = preprocess(header_tokens, full_path);
+        pop_include(inc_stack);
+        free(content);
+
+        // Look for corresponding .c file
+        char *source_filename = get_source_filename(filename);
+        char *source_path = search_include_file(source_filename, is_system, current_file);
+
+        if (source_path)
+        {
+            char *source_content = read_file(source_path);
+            if (source_content)
+            {
+                push_include(inc_stack, source_path);
+                typed_token *source_tokens = tokenize(source_content);
+                typed_token *processed_source = preprocess(source_tokens, source_path);
+                pop_include(inc_stack);
+
+                if (processed_source)
+                {
+                    typed_token *last = result;
+                    while (last && last->next)
+                        last = last->next;
+                    if (last)
+                        last->next = processed_source;
+                    else
+                        result = processed_source;
+                }
+                free(source_content);
+            }
+            free(source_path);
+        }
+        free(source_filename);
+    }
+    else
     {
-        free(filename);
-        free(full_path);
-        return NULL;
+        char *content = read_file(full_path);
+        if (!content)
+        {
+            free(filename);
+            free(full_path);
+            return NULL;
+        }
+
+        push_include(inc_stack, full_path);
+        typed_token *included_tokens = tokenize(content);
+        result = preprocess(included_tokens, full_path);
+        pop_include(inc_stack);
+        free(content);
     }
 
-    push_include(inc_stack, full_path);
-    typed_token *included_tokens = tokenize(content);
-    typed_token *processed = preprocess(included_tokens, full_path);
-    pop_include(inc_stack);
-
-    free(content);
     free(filename);
     free(full_path);
 
     *tkns_ptr = tkn;
-    return processed;
+    return result;
 }
 
 typed_token *preprocess(typed_token *tkns, const char *filename)
@@ -228,8 +288,6 @@ typed_token *preprocess(typed_token *tkns, const char *filename)
             define *def = find_def(&defines, (char *)tkn->data);
             if (def)
             {
-
-                // Add tkn
                 if (!first)
                 {
                     first = clone(def->replace);
@@ -246,7 +304,6 @@ typed_token *preprocess(typed_token *tkns, const char *filename)
             }
         }
 
-        // Add tkn
         if (!first)
         {
             first = clone(tkn);
